@@ -1,0 +1,841 @@
+
+//Safietou Diop
+//1B
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <conio.h>
+#include <unistd.h>
+ //COMMENCONS
+ //
+define nbr_max_contact 200
+//Pour les varibles de type booleenes
+typedef int bool;
+define false 0
+define true 1
+
+//pour ne pas garder les contacts soient triés indefiniment
+bool contactsTries = false;
+//Structure pour les contacts
+struct Contact {
+    char Prenom[100];
+    char Nom[100];
+    char Mail[100];
+    char Tel[100];
+};
+//Tableau où seront sockés les contacts plutard
+struct Contact carnet[nbr_max_contact];
+//Tableau où seront sockes les contacts tries
+struct Contact carnetTri[nbr_max_contact];
+int nbrcontact = 0;
+
+
+//Structure pour les Utilisateurs
+struct Utilisateur {
+    char Prenom[100];
+    char Nom[100];
+    char Tel[100];
+    char Mdp[100];
+    char Pseudo[100];
+};
+ //Traits pour la mise en forme
+void traits() {
+    printf("+---------------------------------------------------------------------+\n");
+}
+
+//Convertion de tous les prenoms et noms en Maj avec la fonction toupper (Vers majuscule)
+void MAJ(char *chaine) {
+    int i = 0;
+    while (chaine[i]) {
+        chaine[i] = toupper(chaine[i]);
+        i++;
+    }
+}
+//Fonction pour cacher chaque charatere du mot de passe avec "*"
+void cacher_mdp(char *mdp) {
+    int i = 0;
+    char cacher;
+    while (1) {
+        cacher = getch();
+        if (cacher == 13) 
+        {
+            //Considere qu'a chaque fois que la touche 'ENTRER' est pressee
+            //on atteint la fin du tableau
+            //code AASCII 'ENTRER'=13
+            mdp[i] = '\0';
+            break;
+        } 
+        else if (cacher == 8) 
+        {
+             //Considere qu'a chaque fois que la touche 'BACKSPACE' esT pressee
+            //un epace vide est cree tant qu'il y a deja au moins un charactere present
+            //code AASCII 'BACKSPACE'=8
+            if (i > 0) 
+            {
+                i--;
+                printf("\b \b");
+            }
+        } 
+        else 
+        {
+            //Pour tout le reste des touches du clavier
+            //Remplacer chaque charatere par "*"
+            mdp[i++] = cacher;
+            printf("*");
+        }
+    }
+    printf("\n");
+}
+//controle de saisie pour le numero de telephone(uniquement des chiffres avec une longeur de 9)
+bool bonnumero(char *num) 
+{
+    //Variable pour la longeur du numero de telephone
+    int longueur = strlen(num);
+    //retourne un message d'erreur si le longueur est differente de 9
+    if (longueur != 9) 
+    {
+        return false;
+    }
+    //Message d'erreur si le charactere n'est pas un chiffre
+    for (int i = 0; i < longueur; i++) 
+    {
+        //la fonction isdigit() verifie si le charactere est un entier 
+        if (!isdigit(num[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+//Inscription de l'utilisateur
+void inscription(struct Utilisateur *utilisateur) {
+    traits();
+    printf("\t\t\tCreer un compte\n");
+    traits();
+    // Saisie des infos et stockage dans les varible de la structure Utilisateur
+    printf("Prenom : ");
+    scanf("%s", utilisateur->Prenom);
+    printf("Nom : ");
+    scanf("%s", utilisateur->Nom);
+    printf("Pseudo : ");
+    scanf("%s", utilisateur->Pseudo);
+    //controle de saisie du numero de telephone
+    do {
+        printf("Numero de telephone : ");
+        scanf("%s", utilisateur->Tel);
+        if (!bonnumero(utilisateur->Tel)) {
+            printf("Veuillez entrer un numero de telephone valide (9 chiffres).\n");
+        }
+    } while (!bonnumero(utilisateur->Tel));
+    //dissimulation du mot de passe
+    printf("Mot de passe : ");
+    cacher_mdp(utilisateur->Mdp);
+    //Stockage des nouveau utilisateur dans un fichier "u"
+    //grace au pointer de tipe FILE
+    FILE *u = fopen("utilisateurs.txt", "a");
+       
+    //si le fichier est vide
+    if (u == NULL) 
+    {
+        printf("OUPS ! Une erreur a survenu...\n");
+        sleep(2);
+        exit(1);
+    }
+    //Ecriture des infos dans le fichier
+    fprintf(u, "%s %s %s %s %s\n", utilisateur->Prenom, utilisateur->Nom, utilisateur->Pseudo, utilisateur->Tel, utilisateur->Mdp);
+    //Fermuture du fichier
+    fclose(u);
+    printf("\nCompte cree avec succès.\n");
+}
+//Connexion de l'utilisateur
+bool connexion(struct Utilisateur *utilisateur) {
+    //Variables de connexion
+    char Pseudo[100];
+    char Tel[100];
+    char Mdp[100];
+    //Valider la connexion ou Annuler
+    char VA;
+    //Menu de connexion
+    traits();
+    printf("                 -------Connectez-vous------- \n");
+    traits();
+    printf("Pseudo : ");
+    scanf("%s", Pseudo);
+    //controle de saisie du numero
+    do {
+        printf("Numero de telephone : ");
+        scanf("%s", Tel);
+        if (!bonnumero(Tel)) {
+            printf("Veuillez entrer un numero de telephone valide (9 chiffres).\n");
+        }
+    } while (!bonnumero(Tel));
+    //Confidentialite du mdp
+    printf("Mot de passe : ");
+    cacher_mdp(Mdp);
+    
+    //Choix de validr la connexion ou non + controle de saisie
+    do
+    {
+       printf("\t\t\tVALIDER[v]  ou ANNULER[a] \n");
+    printf("Votre choix : ");
+    scanf(" %c", &VA);
+    if (VA != 'v' && VA != 'V' && VA != 'a' && VA != 'A' )
+    {
+        
+        traits();
+        printf("\n");
+        printf("Attention ! \n");
+        printf("Verifiez que vous saisissez bien 'v' Valider  et 'a' pour Annuler \n");
+        printf("\n");
+        traits();
+        
+    }
+    
+    } while (VA != 'v' && VA != 'V' && VA != 'a' && VA != 'A'  );
+    
+   
+    //ouverture du fichier contenant les infos des utilisateur precedement crees
+    FILE *u = fopen("utilisateurs.txt", "r");
+    //si fichier vide
+    if (u == NULL) {
+        printf("Erreur lors de la connexion...\n");
+        exit(1);
+    }
+    // Sinon,lecture des info presente dans le fichier "u"
+    while (fscanf(u, "%s %s %s %s %s", utilisateur->Prenom, utilisateur->Nom, utilisateur->Pseudo, utilisateur->Tel, utilisateur->Mdp) != EOF) 
+    {
+        //Si les infos saisies coresspondent a des infos deja existantes
+        //Sachanr qu'ici l'utlisateur est reconnu grace à son pseudo,son numero de telephone et son mdp
+        if (strcmp(utilisateur->Pseudo, Pseudo) == 0 && strcmp(utilisateur->Tel, Tel) == 0 && strcmp(utilisateur->Mdp, Mdp) == 0) 
+        {
+            //fermuture du fichier(toujours apres ouverture)
+            fclose(u);
+            //si valider 
+            if (VA == 'v' || VA == 'V') 
+            {
+                //menu
+                        traits();
+                        printf("\n");
+                        printf("              ---------Connection Reussie--------- \n");
+                        printf("\n");
+                        printf("Veuillez patienter quelque instants...\n");
+                        printf("\n");
+                        //simulation d'attente
+                        sleep(3);
+                        traits();
+                        printf("\n");
+                        printf("              --------- BONJOUR %s %s --------- \n",utilisateur->Prenom,utilisateur->Nom);
+                        printf("\n");
+                return true;
+            }
+            //si Annuler
+            //aller a la fin du switch avec "continue;"
+            else if(VA == 'a' || VA == 'A')
+                continue;
+
+            else 
+            {
+                printf("\n");
+                printf("Attention ! \n");
+                printf("Verifiez que vous saisissez bien 'v' Valider  et 'a' pour Annuler \n");
+                printf("\n");
+            }
+        }
+        //si les infos saisies ne correspondent a aucune donees contenu dans un fichier enregistre
+        else
+            {
+             continue;
+            }
+    }
+
+    printf("\nEchec de la connexion. Veuillez verifier vos informations.\n");
+    //Fermuture du fichier(TOUJOURS)
+    fclose(u);
+    
+    return false;
+}
+//Ajouter un contact dans le repertoire carnet[]
+void ajouter_contact() {
+    traits();
+    //Tant que le nbr de contact dans carnet[] est inferieur à nbr_max_contact
+    if (nbrcontact < nbr_max_contact) {
+        //appel de la structure Contact pour acceder aux variables
+        struct Contact contact;
+        //Pseudo-Interface
+        printf("\t\tNouveau Contact\n");
+        traits();
+        printf("\t\t  ___________ \n");
+        printf("\t\t |           |\n");
+        printf("\t\t |           |\n");
+        printf("\t\t |   Photo   |\n");
+        printf("\t\t |           |\n");
+        printf("\t\t |___________|\n");
+        printf("Prenom:\t");
+        scanf(" %s", contact.Prenom);
+        MAJ(contact.Prenom);
+        printf("Nom:\t");
+        scanf(" %s", contact.Nom);
+        MAJ(contact.Nom);
+        //Controle de saise du Tel
+        do {
+            printf("Tel:\t");
+            scanf("%s", contact.Tel);
+            if (!bonnumero(contact.Tel))
+                printf("Numero invalide! Veuillez reessayer\n");
+        } while (!bonnumero(contact.Tel));
+        printf("Mail:\t");
+        scanf("%s", contact.Mail);
+        traits();
+        printf("\t\tLE CONTACT A BIEN ETE CREE. \n");
+        traits();
+        //Ajout du nouveau contact dans canet[]
+        carnet[nbrcontact] = contact;
+        nbrcontact++;
+    } 
+    else {
+        //si tableau de contact plein
+        traits();
+        printf("\tVotre carnet d'adresse est plein!");
+        traits();
+    }
+}
+//Supprimer un contact
+void supprimer_contact() {
+    printf("\t\t\tSupprimer Contact\n");
+    traits();
+    char tel[100];
+    do {
+        printf("Entrez le numero du contact à supprimer : ");
+        scanf("%s", tel);
+        //contole de saisie
+        if (!bonnumero(tel))
+            printf("Veuillez rentrer un numero valide. \n");
+    } while (!bonnumero(tel));
+    int trouve = 0;
+    //parcourir  carnet[]
+    for (int i = 0; i < nbrcontact; i++) 
+    {
+        //si contact correspondant au telephone saisi trouve
+        if (strcmp(carnet[i].Tel, tel) == 0) 
+        {
+            char supp;
+            trouve = 1;
+            //Demande de confirmation de supression
+            traits();
+            printf("\n");
+            printf("Voulez vous VRAIMENT supprimer ce contact?[o/autre]\n");
+            printf("NB: Attention , vous ne pourrez plus le recupperer:\n");
+            scanf(" %c",&supp);
+            printf("\n");
+            if(supp == 'o' )
+                {
+                    //Pour supprimer le contact,on decremente le nombre de contact a partir du contact considerer
+                    //Ca aura pour effet d'ecraser de dit contact
+                for (int j = i; j < nbrcontact - 1; j++)
+                carnet[j] = carnet[j + 1];
+                memset(&carnet[nbrcontact - 1], 0, sizeof(struct Contact));
+                nbrcontact--;
+                traits();
+                printf("CONTACT SUPPRIME AVEC SUCCES \n");
+                traits();}
+                else
+                    continue;
+            break;
+        }
+    }
+    if (!trouve) {
+        traits();
+        printf("Aucun contact ne correspond a votre recherche\n");
+        traits();
+    }
+}
+
+//Triage des contacts par nom lors de l'affichage
+void tricontact() {
+    //on va utiliser le tri par selection
+    ///pour chaque element i du tableau carnet
+    for (int i = 0; i < nbrcontact - 1; i++) 
+    {
+        //pour chaque element j = i+1 de carnet[]
+        for (int j = i + 1; j < nbrcontact; j++) 
+        {
+            //si le prenom du contact à l'indice j est "inferieur" au prenom du contact à l'indice i
+            if (strcmp(carnet[i].Prenom, carnet[j].Prenom) > 0) 
+            {
+                // it's gonna echanger la position des contacts dans le carnet
+                struct Contact changer = carnet[i];
+                carnet[i] = carnet[j];
+                carnet[j] = changer;
+            }
+        }
+    }
+    
+    printf("Contacts tries par nom avec succès!\n");
+    //Ecriture des contacts tries dans le tableau carnetTri
+     for (int i = 0; i < nbrcontact; i++) {
+        strcpy(carnetTri[i].Prenom, carnet[i].Prenom);
+        strcpy(carnetTri[i].Nom, carnet[i].Nom);
+        strcpy(carnetTri[i].Tel, carnet[i].Tel);
+        strcpy(carnetTri[i].Mail, carnet[i].Mail);
+    }
+}
+// Afficher les contacts stockes dans carnet[]
+void lister_contacts() {
+    printf("\t\t\t\tRepertoire \n");
+    traits();
+    // Si le nombre de contacts du carnet est nul
+    if (nbrcontact == 0) {
+        printf("Aucun contact enregistre pour le moment!\n");
+    } else {
+        int choix;
+        char reponse;
+        do 
+        {
+            //options de tri
+            printf("Lister les contacts:\n");
+            printf("\t1--Afficher les contacts sans tri\n");
+            printf("\t2--Afficher les contacts tries \n");
+            printf("\t3--Retourner au menu precedent\n");
+            printf("Que souhaitez-vous faire ? : ");
+            scanf("%d", &choix);
+            traits();
+            switch (choix) {
+                case 1:
+                {
+                    printf("\t\t\t\tRepertoire \n");
+                    traits();
+                    if (nbrcontact == 0) {
+                        printf("Aucun contact enregistre pour le moment! \n");
+                    } 
+                    else {
+                        printf("Liste de contact :\n");
+                        traits();
+                        // Verifier si les contacts sont tries
+                        if (!contactsTries) {
+                            // Afficher les contacts non tries
+                            for (int i = 0; i < nbrcontact; i++) {
+                                printf("# %d \n", i + 1);
+                                printf("Prenom:\t %s \n", carnet[i].Prenom);
+                                printf("Nom:\t %s \n", carnet[i].Nom);
+                                printf("Tel:\t %s \n", carnet[i].Tel);
+                                printf("Email:\t %s\n", carnet[i].Mail);
+                                traits();
+                            }
+                        } else {
+                            // Afficher les contacts tries
+                            for (int i = 0; i < nbrcontact; i++) {
+                                printf("# %d \n", i + 1);
+                                printf("Prenom:\t %s \n", carnetTri[i].Prenom);
+                                printf("Nom:\t %s \n", carnetTri[i].Nom);
+                                printf("Tel:\t %s \n", carnetTri[i].Tel);
+                                printf("Email:\t %s\n", carnetTri[i].Mail);
+                                traits();
+                            }
+                        }
+                    }
+                }
+                break;
+                case 2:
+                {
+                    printf("\t\t\t\tRepertoire \n");
+                    traits();
+                    if (nbrcontact == 0) {
+                        printf("Aucun contact enregistre pour le moment! \n");
+                    } 
+                    else {
+                        printf("Liste de contact :\n");
+                        traits();
+                        char tri;
+                        printf("Voulez-vous trier les contacts par prenom? [o/n]: ");
+                        scanf(" %c", &tri);
+                        if (tri == 'o' || tri == 'O') {
+                            tricontact();
+                            contactsTries = true;
+                            printf("Contacts tries par nom avec succès!\n");
+                        }
+                        else {
+                            // Reinitialiser l'indicateur si les contacts ne sont pas tries
+                            contactsTries = false;
+                        }
+                        // Afficher les contacts (tries si l'indicateur est true)
+                        for (int i = 0; i < nbrcontact; i++) {
+                            printf("# %d \n", i + 1);
+                            printf("Prenom:\t %s \n", carnet[i].Prenom);
+                            printf("Nom:\t %s \n", carnet[i].Nom);
+                            printf("Tel:\t %s \n", carnet[i].Tel);
+                            printf("Email:\t %s\n", carnet[i].Mail);
+                            traits();
+                        }
+                    }
+                }
+                break;
+                case 3:
+                    continue;
+                    break;
+                default:
+                    printf("Option invalide. Veuillez reessayer.\n");
+                    break;
+            }
+           
+            sleep(1);
+        } while (choix != 3);
+    }
+}
+
+//Modifer les informations d'un contact
+void modifier_contact() {
+    printf("\t\t\tModifier Contact\n");
+    traits();
+    char t[20];
+    //Saisie du numero du contact a modifier
+    printf("Infos du contact à modifier:\n");
+    do {
+        printf("Tel:\t");
+        scanf("%s", t);
+        if (!bonnumero(t))
+            printf("Veuillez rentrer un numero valide. \n");
+        //while (getchar() != '\n');
+    } while (!bonnumero(t));
+    char n_email[20];
+    //inistialisation de la variable 'trouve' pour savoir si un contact a ete trouve ou pas
+    //0 si non et 1 si oui
+    int trouve = 0;
+    for (int i = 0; i < nbrcontact; i++) 
+    {
+        //si contact trouve
+        if (strcmp(carnet[i].Tel, t) == 0) 
+        {
+            trouve = 1;
+            printf("Prenom:\t %s \n", carnet[i].Prenom);
+            printf("Nom:\t %s \n", carnet[i].Nom);
+            printf("Tel:\t %s \n", carnet[i].Tel);
+            printf("Email:\t %s\n", carnet[i].Mail);
+            traits();
+            printf("CONTACT A MODIFIER \n");
+            traits();
+        
+            printf("(laissez vide pour garder le même)\n"),
+                printf(" Nouveau Prenom  : ");
+                char n_prenom[20]; 
+                //lecture des 19 charactere + le caratere null de fin de chaine '\0' (19+1)
+                fgets(n_prenom, 20, stdin);
+                //sconsidere le retour a la ligne comme null
+                n_prenom[strcspn(n_prenom, "\n")] = 0; 
+                //si au moins un caractere saisi different dont le premier es !="\n"
+                if (strlen(n_prenom) > 0) {
+                    //remplace l'ancien prenom par le nouveau
+                    strcpy(carnet[i].Prenom, n_prenom);
+                }
+
+                // Vider le tampon d'entree: pour que la saisie du nouveau prenom soit bien demandee
+                while (getchar() != '\n');
+                printf(" Nouveau Nom  : ");
+                char n_nom[20];
+                fgets(n_nom, 20, stdin);
+                n_nom[strcspn(n_nom, "\n")] = 0; 
+                if (strlen(n_nom) > 0) {
+                    strcpy(carnet[i].Nom, n_nom);
+                }
+
+                char n_tel[20];
+                char reponse[3]; 
+                do {
+                    printf(" Nouveau Tel  : ");
+                    fgets(n_tel, 20, stdin);
+                    n_tel[strcspn(n_tel, "\n")] = 0; 
+                    // Si l'on ne saisit rien, demander à l'utilisateur s'il veut garder le même numero
+                    if (strlen(n_tel) == 0) {
+                        printf(" Voulez-vous garder le même numero? [o/n]: ");
+                        fgets(reponse, 3, stdin);
+                        if (reponse[0] == 'o' || reponse[0] == 'O') {
+                            // Continuer l'execution après le do-while
+                            goto continuer;
+                            
+                        }
+                    }
+                } while (!bonnumero(n_tel));
+                
+                
+                // Le numero est valide, donc on peut le modifier
+                if (strlen(n_tel) > 0) 
+                    strcpy(carnet[i].Tel, n_tel);
+                continuer:
+                printf(" Nouvel Email  : ");
+                fgets(n_email, 20, stdin);
+                n_email[strcspn(n_email, "\n")] = 0; 
+                if (strlen(n_email) > 0) {
+                    strcpy(carnet[i].Mail, n_email);
+                }
+                
+                            traits();
+                            printf("Contact modifie avec succès.\n");
+                            traits();
+                        }
+                    }
+                    if (!trouve) 
+                    {
+                        traits();
+                        printf("Desole! Aucun contact ne correspond à votre recherche.\n");
+                        traits();
+                    }
+
+    }
+//Rechercher un contact
+void rechercher_contact() {
+    printf("\t\t\tRechercher Contact\n");
+    traits();
+    char t[20];
+    printf("Infos du contact recherche:\n");
+    do {
+        printf(" Tel:\t");
+        scanf("%s", t);
+        if (!bonnumero(t))
+            printf("Veuillez rentrer un numero valide. \n");
+    } while (!bonnumero(t));
+    int trouve = 0;
+    //parcour le carnet et compare le numero sasie avec les numeros des contacts precedement enregistres
+    for (int i = 0; i < nbrcontact; i++) {
+        //affiche le contact correspondant si trouve
+        if (strcmp(carnet[i].Tel, t) == 0) {
+            trouve = 1;
+            traits();
+            printf("RESULTATS TROUVES : \n");
+            traits();
+            printf("Prenom:\t %s \n", carnet[i].Prenom);
+            printf("Nom:\t %s \n", carnet[i].Nom);
+            printf("Tel:\t %s \n", carnet[i].Tel);
+            printf("Email:\t %s\n", carnet[i].Mail);
+            
+        }
+    }
+    //si aucun contact trouve
+    if (!trouve) {
+        traits();
+        printf("\tDesole!Aucun contact ne correspond à votre recherche \n");
+        traits();
+    }
+}
+
+//Debut de la fonction main
+int main() 
+{
+    //Variables pour les deux switch()
+    char option, choix;
+     //Variables pour les deux boucles do while
+    char menu;
+    char retour;
+      do 
+    {
+     //MENU DE CONNEXION
+        traits();
+        printf("*Bienvenue dans l'interface de connexion !*\n");
+        traits();
+        printf("\t1--Se connecter\n");
+        printf("\t2--Creer un compte\n");
+        printf("\t3--Quitter\n");
+        printf("\n");
+        //Controle de saisie pour l'option
+            do {
+            
+                printf("Que souhaitez-vous faire ? : ");
+                scanf(" %c", &option);
+                if (!isdigit(option)) 
+                    printf("Veuillez entrer un des chiffre indique plus haut.\n");
+                    printf("\n");
+            
+                 } while (!isdigit(option));
+
+        
+    
+        
+        //Gestion des choix
+        switch (option) {
+            case '1': 
+            {
+                //CONNEXION
+                //Appel de la structure Utilisateur
+                struct Utilisateur utilisateur;
+                //Si jamais les information entrees correspondent au informations d'un utilisateur deja enregistre:
+                if (connexion(&utilisateur)) 
+                {
+                    do 
+                    {
+                        //Marqeur pour revenir ici si besoin
+                        gestion_contact:
+                        //Menu Gestion des contacts
+                        traits();
+                        printf("               +--------GESTION DE CONTACT--------+\n");
+                        traits();
+                        printf("\t1--Ajouter un contact\n");
+                        printf("\t2--Modifier un contact\n");
+                        printf("\t3--Rechercher un contact\n");
+                        printf("\t4--Supprimer un contact\n");
+                        printf("\t5--Lister les contacts\n");
+                        printf("\t6--Se deconnecter\n");
+                        //Controle de saisie pour le choix
+                        do
+                        {
+                            traits();
+                            printf("Que souhaitez-vous faire ? : ");
+                            scanf(" %c", &choix);
+                            if (!isdigit(choix)) 
+                            printf("Veuillez entrer un des chiffre indique plus haut.\n");
+                            printf("\n");
+
+                        } while (!isdigit(choix));
+                        
+                        switch (choix) {
+                            case '1':
+                                ajouter_contact();
+                                break;
+                            case '2':
+                                modifier_contact();
+                                break;
+                            case '3':
+                                rechercher_contact();
+                                break;
+                            case '4':
+                                supprimer_contact();
+                                break;
+                            case '5':
+                                lister_contacts();
+                                break;
+                            case '6':
+                            {
+                                //Reinitialisation de l'option a 0
+                                option =0;
+                                    traits();
+                                     printf("\t\t\t\t QUITTER \n");
+                                    traits();
+                                    char quitter;
+                                    do
+                                    {
+                                        printf("Voulez vous quitter?[o/n]: ");
+                                        scanf(" %c",&quitter);
+
+                                        if(quitter != 'o' && quitter != 'O' && quitter != 'n' && quitter != 'N')
+                                            {
+                                                traits();
+                                                printf("\n");
+                                                printf("Attention ! Verifiez que vous saisissez bien 'o' pour Oui et 'n' pour non \n");
+                                                printf("\n");
+                                                traits();
+                                            }
+
+                                    } while (quitter != 'o' && quitter != 'O' && quitter != 'n' && quitter != 'N');
+                                    
+                                    
+                                    if(quitter == 'o' )
+                                        {traits();
+                                        printf("\t\t\tDeconnexion...\n");
+                                        traits();
+                                        sleep(2);
+                                         goto menu_principal;
+                                        }
+                                    else if(quitter == 'n')
+                                        //Retourner au menu gestion grace au marqueur "gestion_contact:"
+                                        goto gestion_contact;
+                            }
+                                break;
+                            default:
+                                {
+                                    traits();
+                                    printf("Option invalide. Veuillez reessayer.\n");
+                                    sleep(2);
+                                goto gestion_contact;
+                                }
+                                break;
+                        }
+                        //Attente de 2s pour simuler une deconnexion
+                        sleep(2);
+                                
+                                //Proposition de revenir au menu de gestion de contact ou non+ controle de saisie
+
+                                do
+                                {
+                                    printf(" ______________________\n");
+                                    printf("|                      |\n");  
+                                    printf("|RETOUR?[o/n]:         |\n");
+                                    printf("|______________________|\n");
+                                    printf("--->");
+                                    scanf(" %c",&retour);
+
+                                    if (retour != 'o'&& retour != 'O'&& retour != 'n'&& retour != 'N' )
+                                    {
+                                        traits();
+                                        printf("\n");
+                                        printf("Attention ! Verifiez que vous saisissez bien 'o' pour Oui et 'n' pour non \n");
+                                        printf("\n");
+                                        traits();
+                                    }
+                                    
+                                } while (retour != 'o'&& retour != 'O'&& retour != 'n'&& retour != 'N' );
+
+                                if(retour == 'n'|| retour == 'N')
+                                    //Arrete le programme
+                                    goto menu_principal;    
+                    } while (choix != 6 || retour == 'o');
+                }
+                break;
+            }
+            case '2': 
+            {
+                //Appel de la structur Utilisateur pour l'inscription
+                struct Utilisateur utilisateur;
+                inscription(&utilisateur);
+                break;
+            }
+            case '3':
+            {
+                traits();
+                printf("\n") ;
+                printf("\t\t\t\tA Bientot ! \n");
+                printf("\n") ;
+                traits();
+                
+                return 0;
+            }
+            default:
+            {
+                traits();
+                printf("Option invalide. Veuillez reessayer.\n");
+                traits();
+            }
+                break;
+        }
+        //Marqueur pour revenir ici si "goto menu_principal" appele:
+        menu_principal:
+        sleep(2);
+        do
+        {
+            printf("\n");
+            printf("Retourner au menu principal ? [o/n] : ");
+            scanf(" %c", &menu);
+            printf("\n");
+            if(menu !='n' && menu !='N' && menu !='o' && menu !='O')
+            {
+                traits();
+                printf("\n");
+                printf("Attention ! Verifiez que vous saisissez bien 'o' pour Oui et 'n' pour non \n");
+                printf("\n");
+                traits();
+
+            }
+        } while (menu != 'n' && menu != 'N' && menu != 'o' && menu != 'O' );
+        
+        if (menu == 'n' || menu == 'N') {
+            traits();
+            printf("\t\t\tA BIENTOT !\n");
+            traits();
+            sleep(1);
+            exit(0);
+        }
+
+        printf("Veuillez patienter ... \n");
+        sleep(2);
+        printf("\n");
+    } while (menu == 'o' || menu == 'O');
+//Fin du Programmme
+    return 0;
+}
